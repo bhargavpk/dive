@@ -22,4 +22,4 @@
 /dist
 .cover
 coverage.txt
-.vscode
+*.vscode
