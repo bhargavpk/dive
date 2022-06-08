@@ -122,6 +122,7 @@ run-ci: build
 
 build: gofmt
 	go build -o $(BUILD_PATH)
+	cp $(BUILD_PATH) $$(go env GOPATH)/bin
 
 generate-test-data:
 	docker build -t dive-test:latest -f .data/Dockerfile.test-image . && docker image save -o .data/test-docker-image.tar dive-test:latest && echo 'Exported test data!'

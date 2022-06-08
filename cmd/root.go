@@ -11,6 +11,7 @@ import (
 	"github.com/wagoodman/dive/dive/filetree"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -57,6 +58,8 @@ func initCli() {
 	rootCmd.Flags().String("lowestEfficiency", "0.9", "(only valid with --ci given) lowest allowable image efficiency (as a ratio between 0-1), otherwise CI validation will fail.")
 	rootCmd.Flags().String("highestWastedBytes", "disabled", "(only valid with --ci given) highest allowable bytes wasted, otherwise CI validation will fail.")
 	rootCmd.Flags().String("highestUserWastedPercent", "0.1", "(only valid with --ci given) highest allowable percentage of bytes wasted (as a ratio between 0-1), otherwise CI validation will fail.")
+
+	logrus.Info("testing logging")
 
 	for _, key := range []string{"lowestEfficiency", "highestWastedBytes", "highestUserWastedPercent"} {
 		if err := ciConfig.BindPFlag(fmt.Sprintf("rules.%s", key), rootCmd.Flags().Lookup(key)); err != nil {
@@ -146,13 +149,12 @@ func initLogging() {
 		logFileObj, err = os.OpenFile(viper.GetString("log.path"), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		log.SetOutput(logFileObj)
 	} else {
-		log.SetOutput(ioutil.Discard)
+		// log.SetOutput(ioutil.Discard)
 	}
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
-
 	Formatter := new(log.TextFormatter)
 	Formatter.DisableTimestamp = true
 	log.SetFormatter(Formatter)

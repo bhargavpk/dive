@@ -25,11 +25,16 @@ func NewExport(analysis *diveImage.AnalysisResult) *export {
 		},
 	}
 
-	// export layers in order
+	logrus.SetLevel(logrus.DebugLevel)
+
 	for idx, curLayer := range analysis.Layers {
-		layerFileList := make([]filetree.NodeData, 0)
+		layerFileList := make([]absNodeData, 0)
 		visitor := func(node *filetree.FileNode) error {
-			layerFileList = append(layerFileList, node.Data)
+
+			layerFileList = append(layerFileList, absNodeData{
+				AbsPath:  node.Path(),
+				NodeData: node.Data,
+			})
 			return nil
 		}
 		err := curLayer.Tree.VisitDepthChildFirst(visitor, nil)
