@@ -8,14 +8,14 @@ import (
 	diveImage "github.com/wagoodman/dive/dive/image"
 )
 
-type export struct {
+type Export struct {
 	Layer []layer `json:"layer"`
 	Image image   `json:"image"`
 }
 
 // NewExport exports the analysis to a JSON
-func NewExport(analysis *diveImage.AnalysisResult) *export {
-	data := export{
+func NewExport(analysis *diveImage.AnalysisResult) *Export {
+	data := Export{
 		Layer: make([]layer, len(analysis.Layers)),
 		Image: image{
 			InefficientFiles: make([]fileReference, len(analysis.Inefficiencies)),
@@ -65,6 +65,6 @@ func NewExport(analysis *diveImage.AnalysisResult) *export {
 	return &data
 }
 
-func (exp *export) Marshal() ([]byte, error) {
+func (exp *Export) Marshal() ([]byte, error) {
 	return json.MarshalIndent(&exp, "", "  ")
 }
