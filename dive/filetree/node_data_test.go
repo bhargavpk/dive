@@ -35,7 +35,7 @@ func BlankFileChangeInfo(path string) (f *FileInfo) {
 	result := FileInfo{
 		Path:     path,
 		TypeFlag: 1,
-		hash:     123,
+		Hash:     123,
 	}
 	return &result
 }

@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/cespare/xxhash"
 	"github.com/sirupsen/logrus"
@@ -14,7 +15,7 @@ type FileInfo struct {
 	Path     string      `json:"path"`
 	TypeFlag byte        `json:"typeFlag"`
 	Linkname string      `json:"linkName"`
-	hash     uint64      //`json:"hash"`
+	Hash     uint64      `json:"hash"`
 	Size     int64       `json:"size"`
 	Mode     os.FileMode `json:"fileMode"`
 	Uid      int         `json:"uid"`
@@ -26,14 +27,17 @@ type FileInfo struct {
 func NewFileInfoFromTarHeader(reader *tar.Reader, header *tar.Header, path string) FileInfo {
 	var hash uint64
 	if header.Typeflag != tar.TypeDir {
-		hash = getHashFromReader(reader)
+		// TODO: Pass path to getHashFromReader
+		// Create a new FileNode having path. Call Path() of FileNode
+		// Compute hash from contents and absolute path
+		hash = getHashFromReader(reader, path)
 	}
 
 	return FileInfo{
 		Path:     path,
 		TypeFlag: header.Typeflag,
 		Linkname: header.Linkname,
-		hash:     hash,
+		Hash:     hash,
 		Size:     header.FileInfo().Size(),
 		Mode:     header.FileInfo().Mode(),
 		Uid:      header.Uid,
@@ -73,14 +77,14 @@ func NewFileInfo(realPath, path string, info os.FileInfo) FileInfo {
 			logrus.Panic("unable to read file:", realPath)
 		}
 		defer file.Close()
-		hash = getHashFromReader(file)
+		hash = getHashFromReader(file, path)
 	}
 
 	return FileInfo{
 		Path:     path,
 		TypeFlag: fileType,
 		Linkname: linkName,
-		hash:     hash,
+		Hash:     hash,
 		Size:     size,
 		Mode:     info.Mode(),
 		// todo: support UID/GID
@@ -99,7 +103,7 @@ func (data *FileInfo) Copy() *FileInfo {
 		Path:     data.Path,
 		TypeFlag: data.TypeFlag,
 		Linkname: data.Linkname,
-		hash:     data.hash,
+		Hash:     data.Hash,
 		Size:     data.Size,
 		Mode:     data.Mode,
 		Uid:      data.Uid,
@@ -111,7 +115,7 @@ func (data *FileInfo) Copy() *FileInfo {
 // Compare determines the DiffType between two FileInfos based on the type and contents of each given FileInfo
 func (data *FileInfo) Compare(other FileInfo) DiffType {
 	if data.TypeFlag == other.TypeFlag {
-		if data.hash == other.hash &&
+		if data.Hash == other.Hash &&
 			data.Mode == other.Mode &&
 			data.Uid == other.Uid &&
 			data.Gid == other.Gid {
@@ -121,8 +125,14 @@ func (data *FileInfo) Compare(other FileInfo) DiffType {
 	return Modified
 }
 
-func getHashFromReader(reader io.Reader) uint64 {
+func getHashFromReader(reader io.Reader, path string) uint64 {
 	h := xxhash.New()
+
+	// Get absolute path
+	tmpFileNode := FileNode{
+		path: path,
+	}
+	absPath := tmpFileNode.Path()
 
 	buf := make([]byte, 1024)
 	for {
@@ -140,5 +150,19 @@ func getHashFromReader(reader io.Reader) uint64 {
 		}
 	}
 
-	return h.Sum64()
+	contentHash := h.Sum64()
+	contentHashStr := strconv.FormatUint(contentHash, 10)
+	finalHash := xxhash.New()
+
+	_, err := finalHash.Write([]byte(contentHashStr))
+	if err != nil {
+		logrus.Panic(err)
+	}
+	// Add absolute path as hash parameter
+	_, err = finalHash.Write([]byte(absPath))
+	if err != nil {
+		logrus.Panic(err)
+	}
+
+	return finalHash.Sum64()
 }
